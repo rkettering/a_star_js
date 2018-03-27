@@ -1,0 +1,79 @@
+<html>
+	<head>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.js"></script>
+		<script>
+			//unguarded assumption:  this grid's rows are arrays, and have non-zero width
+			var grid =	[
+							[0,0,0,0],
+							[1,1,0,1],
+							[0,0,0,0]
+						];
+						
+			
+			var grid_explored = null;
+			
+			var init_search = () => {
+				grid_explored = grid;
+			};
+			
+			var search_paths = [];
+			var pending_search_paths = undefined;
+
+			
+			var is_outside_bounds = ( coords_x, coords_y ) => {
+				return	(
+							coords_x < 0 ||
+							coords_x > grid[0].length ||
+							coords_y < 0 ||
+							coords_y > grid.length
+						);
+			}
+			
+			var check_adjacencies = ( coords, previous_steps_in_current_path ) => {
+				pending_search_paths = Array.from(search_paths);
+				
+				//check every adjacent tile in clockwise order, starting from the north.
+				pending_search_paths = check_tile ( {x: coords.x,		y: coords.y - 1 },	previous_steps_in_current_path, pending_search_paths );
+				pending_search_paths = check_tile ( {x: coords.x + 1,	y: coords.y },		previous_steps_in_current_path, pending_search_paths );
+				pending_search_paths = check_tile ( {x: coords.x,		y: coords.y + 1 },	previous_steps_in_current_path, pending_search_paths );
+				pending_search_paths = check_tile ( {x: coords.x - 1,	y: coords.y },		previous_steps_in_current_path, pending_search_paths );
+					
+				console.log(pending_search_paths);
+			}
+			
+			var check_tile = ( coords, previous_steps_in_current_path, _new_search_paths ) => {
+				if( !is_outside_bounds(coords.x, coords.y) && !grid_explored[ coords.y ][ coords.x ] ){
+					/*
+						If the tile we're checking is out of bounds, then it's blocked.  If it's already explored, it's also blocked.
+						In both of these cases we "delete" the search path by not propagating it.
+						
+						If it's actually open, we push it onto our list of tiles to consider in the next step.
+					*/
+					console.log( coords );
+					return _.cloneDeep(_new_search_paths.concat(  [previous_steps_in_current_path.concat( [coords] )] ));
+				} else {
+					return _new_search_paths;
+				}
+			};
+			
+			init_search();
+			check_adjacencies( {x: 0, y: 0}, []);
+	/*
+
+
+		Start building an array of "search paths"; each search path is going to be a list of individual steps we've taken through the map.
+	
+		At each step, we're going to check the tiles adjacent to each "end cap" of a search path.
+			If they're closed, we ignore them, because they've already been eliminated from being searched by any other search paths.
+			If they're open, we add them to the tail of the search path (and eliminate them from any other search paths, since if another path finds them on the same step, they're distance-equivalent to the current search, whereas if another path finds them on a later step, they're a wasteful way of reaching the path we've already found.
+			If no tiles are available, we delete the current search path, since it's a dead end.
+		
+		Rather than actually "deleting" a search path, the best way to proceed is to maintain a list of current search paths, and only propagate them to the next step if they're still worth pursuing.  This way we don't have to maintain some sort of "unique identifier" or do a "deep comparison" to conclusively find the current path in a list of paths we're searching (which would have some kind of really bad many-to-many comparison complexity) - and it handles the case of needing to "split" the current search path into a tree of several different options, elegantly.
+		
+	*/		
+			
+		</script>
+	</head>
+</html>
+
+
