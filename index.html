@@ -11,34 +11,51 @@
 						
 			
 			var grid_explored = null;
-			
-			var init_search = () => {
-				grid_explored = grid;
-			};
-			
 			var search_paths = [];
-			var pending_search_paths = undefined;
+			var pending_search_paths = [];
+			var successful_path = null;
+			var target_coords = null;
 
+			
+			var init_search = (_coords, _target_coords) => {
+				grid_explored = grid;
+				search_paths = [[_coords]];
+				target_coords = _target_coords;
+
+				cycle_search();
+			};
 			
 			var is_outside_bounds = ( coords_x, coords_y ) => {
 				return	(
 							coords_x < 0 ||
-							coords_x > grid[0].length ||
+							coords_x >= grid[0].length ||
 							coords_y < 0 ||
-							coords_y > grid.length
+							coords_y >= grid.length
 						);
 			}
 			
 			var check_adjacencies = ( coords, previous_steps_in_current_path ) => {
-				pending_search_paths = Array.from(search_paths);
+				if( coords.x == target_coords.x && coords.y == target_coords.y ){
+					/*
+						if this is true, we've found the target, and because all other search paths are equal-length, this is a shortest one (other concurrent paths on this step might also reach the destination, but anything that takes further steps to reach the same goal is going to be a longer path, so we can disregard those by short-circuiting the search right now).
+					*/
+					successful_path = _.cloneDeep( previous_steps_in_current_path.concat( [coords] ) );
+					pending_search_paths = [];
+					search_paths = [];
+				} else {
+					pending_search_paths = _.cloneDeep(pending_search_paths);
 				
-				//check every adjacent tile in clockwise order, starting from the north.
-				pending_search_paths = check_tile ( {x: coords.x,		y: coords.y - 1 },	previous_steps_in_current_path, pending_search_paths );
-				pending_search_paths = check_tile ( {x: coords.x + 1,	y: coords.y },		previous_steps_in_current_path, pending_search_paths );
-				pending_search_paths = check_tile ( {x: coords.x,		y: coords.y + 1 },	previous_steps_in_current_path, pending_search_paths );
-				pending_search_paths = check_tile ( {x: coords.x - 1,	y: coords.y },		previous_steps_in_current_path, pending_search_paths );
-					
-				console.log(pending_search_paths);
+					//check every adjacent tile in clockwise order, starting from the north.
+					pending_search_paths = check_tile ( {x: coords.x,		y: coords.y - 1 },	previous_steps_in_current_path, pending_search_paths );
+					pending_search_paths = check_tile ( {x: coords.x + 1,	y: coords.y },		previous_steps_in_current_path, pending_search_paths );
+					pending_search_paths = check_tile ( {x: coords.x,		y: coords.y + 1 },	previous_steps_in_current_path, pending_search_paths );
+					pending_search_paths = check_tile ( {x: coords.x - 1,	y: coords.y },		previous_steps_in_current_path, pending_search_paths );
+				
+					//we don't need to check if the current tile is set to filled, just fill it anyways
+					grid_explored[ coords.y ][ coords.x ] = 1;
+				
+					console.log(pending_search_paths);
+				}
 			}
 			
 			var check_tile = ( coords, previous_steps_in_current_path, _new_search_paths ) => {
@@ -56,12 +73,20 @@
 				}
 			};
 			
-			init_search();
-			pending_search_paths = [[{x: 0, y: 0}]];
 			
-			_.map(pending_search_paths, (value,index) => {
-				check_adjacencies( _.last(value), value);
-			});
+			var cycle_search = () => {
+				_.map(search_paths, (value,index) => {
+					check_adjacencies( _.last(value), value);
+				});
+				
+				search_paths = _.cloneDeep(pending_search_paths);
+				pending_search_paths = [];
+				
+				if(search_paths.length > 0){
+					cycle_search();
+				}
+			}
+			init_search({x: 0, y: 0}, {x: 3, y: 2});
 			//check_adjacencies( {x: 0, y: 0}, []);
 			
 			
