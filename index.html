@@ -18,7 +18,7 @@
 
 			
 			var init_search = (_coords, _target_coords) => {
-				grid_explored = grid;
+				grid_explored = _.cloneDeep(grid);
 				search_paths = [[_coords]];
 				target_coords = _target_coords;
 
@@ -40,8 +40,6 @@
 						if this is true, we've found the target, and because all other search paths are equal-length, this is a shortest one (other concurrent paths on this step might also reach the destination, but anything that takes further steps to reach the same goal is going to be a longer path, so we can disregard those by short-circuiting the search right now).
 					*/
 					successful_path = _.cloneDeep( previous_steps_in_current_path.concat( [coords] ) );
-					pending_search_paths = [];
-					search_paths = [];
 				} else {
 					pending_search_paths = _.cloneDeep(pending_search_paths);
 				
@@ -82,17 +80,40 @@
 				search_paths = _.cloneDeep(pending_search_paths);
 				pending_search_paths = [];
 				
-				if(search_paths.length > 0){
+				if(search_paths.length > 0 && successful_path == null){
 					cycle_search();
+				} else {
+					render_map();
 				}
 			}
-			init_search({x: 0, y: 0}, {x: 3, y: 2});
-			//check_adjacencies( {x: 0, y: 0}, []);
+			
+			var render_map = () => {
+				console.log('here');
+
+				
+				
+				document.getElementById("drawnMap").innerHTML = _.map( grid, (row_value, row_index) => {
+					return _.map( row_value, (col_value, col_index) => {
+						if( _.find(successful_path, (value) => { return value.x == col_index && value.y == row_index })  ){
+							return '*';
+						} else if( grid[row_index][col_index] == 1 ) {
+							return '\u2593';
+						} else {
+							return '\u2591';
+						}
+						
+					}).join('');
+				}).join('\n')
+				
+			};
+			
+			document.addEventListener("DOMContentLoaded", (event) => { 
+			  	init_search({x: 0, y: 0}, {x: 3, y: 2});
+			});
+			
 			
 			
 	/*
-
-
 		Start building an array of "search paths"; each search path is going to be a list of individual steps we've taken through the map.
 	
 		At each step, we're going to check the tiles adjacent to each "end cap" of a search path.
@@ -101,11 +122,13 @@
 			If no tiles are available, we delete the current search path, since it's a dead end.
 		
 		Rather than actually "deleting" a search path, the best way to proceed is to maintain a list of current search paths, and only propagate them to the next step if they're still worth pursuing.  This way we don't have to maintain some sort of "unique identifier" or do a "deep comparison" to conclusively find the current path in a list of paths we're searching (which would have some kind of really bad many-to-many comparison complexity) - and it handles the case of needing to "split" the current search path into a tree of several different options, elegantly.
-		
 	*/		
 			
 		</script>
 	</head>
+	<body>
+		<pre id="drawnMap"></pre>
+	</body>
 </html>
 
 
