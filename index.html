@@ -3,10 +3,21 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.js"></script>
 		<script>
 			//unguarded assumption:  this grid's rows are arrays, and have non-zero width
+/*
 			var grid =	[
 							[0,0,0,0],
 							[1,1,0,1],
 							[0,0,0,0]
+						];
+*/
+
+			var grid =	[
+							[0,0,0,0,0,0,0,0,0,0],
+							[1,0,0,1,1,1,1,0,1,0],
+							[0,0,1,0,0,0,1,0,0,0],
+							[0,0,1,1,1,0,1,1,0,0],
+							[1,0,1,0,0,0,0,0,0,0],
+							[0,0,0,0,1,1,1,1,0,0]
 						];
 						
 			
@@ -64,7 +75,6 @@
 						
 						If it's actually open, we push it onto our list of tiles to consider in the next step.
 					*/
-					console.log( coords );
 					return _.cloneDeep(_new_search_paths.concat(  [previous_steps_in_current_path.concat( [coords] )] ));
 				} else {
 					return _new_search_paths;
@@ -95,7 +105,7 @@
 				document.getElementById("drawnMap").innerHTML = _.map( grid, (row_value, row_index) => {
 					return _.map( row_value, (col_value, col_index) => {
 						if( _.find(successful_path, (value) => { return value.x == col_index && value.y == row_index })  ){
-							return '*';
+							return '\u2022';
 						} else if( grid[row_index][col_index] == 1 ) {
 							return '\u2593';
 						} else {
