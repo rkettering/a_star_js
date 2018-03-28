@@ -57,7 +57,14 @@
 			};
 			
 			init_search();
-			check_adjacencies( {x: 0, y: 0}, []);
+			pending_search_paths = [[{x: 0, y: 0}]];
+			
+			_.map(pending_search_paths, (value,index) => {
+				check_adjacencies( _.last(value), value);
+			});
+			//check_adjacencies( {x: 0, y: 0}, []);
+			
+			
 	/*
 
 
