@@ -1,0 +1,110 @@
+<html>
+	<head>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.js"></script>
+		<script>
+
+
+
+
+
+
+
+
+
+
+			var build_node_graph_from_grid_with_start_point = ( _grid ) => {
+				//var node_graph = { coords: _start_coords, children: [] };
+				var flat_array = {};
+				
+				var push_if_not_null = (_array, _push_val) => {
+					if(_push_val != null){
+						_array.push( _push_val );
+					}
+				}
+				
+				var is_outside_bounds = (_grid, coords_x, coords_y ) => {
+					return	(
+								coords_x < 0 ||
+								coords_x >= _grid[0].length ||
+								coords_y < 0 ||
+								coords_y >= _grid.length
+							);
+				}
+			
+				var check_adjacencies = ( _grid, _coords ) => {
+					var adjacent_nodes = [];
+			
+					//check every adjacent tile in clockwise order, starting from the north.
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x,		y: _coords.y - 1 },	));
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x + 1,	y: _coords.y },		));
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x,		y: _coords.y + 1 },	));
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x - 1,	y: _coords.y },		));
+				
+					return adjacent_nodes;
+				}
+
+				var check_tile = ( _grid, _coords ) => {
+					if( !is_outside_bounds(_grid, _coords.x, _coords.y) && !_grid[ _coords.y ][ _coords.x ] ){
+						/*
+							If the tile we're checking is out of bounds, then it's blocked.
+							If the tile we're checking is open, it's a valid node connection, so we return it (so we can add it to the graph).
+						*/
+						return _coords.x + "," + _coords.y;
+					} else {
+						return null;
+					}
+				};
+
+
+				var build_graph = ( _grid ) => {
+					var graph_as_adjacency_list = [];
+					
+					
+					_.map( _grid, (row_value, row_index) => {
+						_.map( row_value, (col_value, col_index) => {
+
+							//using this to skip solid tiles; we already handle tracking adjacencies *into* solid tile in the check_adjacencies function, but we need to skip looking *outwards* from solid tiles as well.
+							if(	!_grid[ row_index ][ col_index ] ){
+								graph_as_adjacency_list[col_index + "," + row_index] = check_adjacencies( _grid, { x: col_index, y: row_index } );
+							}	
+						})
+					});
+					
+					return graph_as_adjacency_list;
+				}
+				
+				console.log( build_graph(_grid) );
+			}
+
+
+
+			/*--------------------------- The three grids we want to search ---------------------------*/
+
+
+			var grid1 =	[
+							[0,0,0,0,0,0,0,0,0,0],
+							[1,0,0,1,1,1,1,0,1,0],
+							[0,0,1,0,0,0,1,0,0,0],
+							[0,0,1,1,1,0,1,1,0,0],
+							[1,0,1,0,0,0,0,0,0,0],
+							[0,0,0,0,1,1,1,1,0,0]
+						];
+
+	
+			
+			document.addEventListener("DOMContentLoaded", (event) => { 
+				build_node_graph_from_grid_with_start_point(grid1);
+				//do_search_on_grid(grid2, {x: 1, y: 1}, {x: 180, y: 45});
+			});
+		
+			
+			
+			
+		</script>
+	</head>
+	<body>
+		<pre id="drawnMap"></pre>
+	</body>
+</html>
+
+
