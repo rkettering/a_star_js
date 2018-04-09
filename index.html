@@ -83,17 +83,22 @@
 			
 			/*--------------------------- initialization ---------------------------*/
 				var cycle_search = () => {
-					_.map(search_paths, (value,index) => {
-						check_adjacencies( _.last(value), value);
-					});
+					var done = false;
+					
+					while( !done ){
+						_.map(search_paths, (value,index) => {
+							check_adjacencies( _.last(value), value);
+						});
 				
-					search_paths = (pending_search_paths);
-					pending_search_paths = [];
+						search_paths = (pending_search_paths);
+						pending_search_paths = [];
 				
-					if(search_paths.length > 0 && successful_path == null){
-						cycle_search();
-					} else {
-						render_map();
+						if(search_paths.length > 0 && successful_path == null){
+							
+						} else {
+							done = true,
+							render_map();
+						}
 					}
 				}
 			
