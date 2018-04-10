@@ -1,13 +1,25 @@
 <html>
 	<head>
+		<style>
+			html {
+				font-family: sans-serif;
+			}
+			.legend {
+				padding: 1em;
+				border: 1px solid black;
+				margin-bottom: 2em;
+				width: fit-content;
+			}
+			
+			span.color_block {
+				display: inline-block;
+				width: 1em;
+				height: 1em;
+			}
+		</style>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 		<script>
-
-
-
-
-
 
 
 
@@ -90,8 +102,6 @@
 			var breadth_first_search = ( _graph, _start_coords, _end_coords ) => {
 				var visited_nodes = [];
 				var visited_node_parent_tree = [];
-				//var discarded_nodes = [];
-				var current_search_list = [];
 				var finished_searching = false;
 				var found_path = [];
 				var frame_count = 0;
@@ -321,13 +331,22 @@
 		</script>
 	</head>
 	<body>
+		<div class="legend">
+			<h4>Legend:</h4>
+			<div><span class="color_block" style="background-color: dimgrey;"></span> Solid wall.</div> 
+			<div><span class="color_block" style="background-color: lightgrey;"></span> Open tile, not tested by algorithm.</div> 
+			<div><span class="color_block" style="background-color: darksalmon;"></span> Tested by algorithm, not selected as shortest path.</div> 
+			<div><span class="color_block" style="background-color: indianred;"></span> Selected as shortest path.</div> 
+			<div><span class="color_block" style="background-color: deeppink;"></span> Start/End tile.</div> 
+		</div>
 		<div id="drawnMap">
+			<h4>Grid 1:</h4>
 			<canvas id="canvas1"></canvas>
 			<br>
-			<br>
+			<h4>Grid 2:</h4>
 			<canvas id="canvas2"></canvas>
 			<br>
-			<br>
+			<h4>Grid 3:</h4>
 			<canvas id="canvas3"></canvas>
 		</div>
 	</body>
