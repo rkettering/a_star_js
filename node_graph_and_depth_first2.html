@@ -79,30 +79,30 @@
 
 
 
+			var node_has_any_open_leaves = ( _graph, _coords, visited_nodes ) => {
+				return Boolean(
+					_.find( _graph[ _coords ], (value, index) => {
+						return !_.includes( visited_nodes, value );
+					})
+				);
+			};
 				
 			var depth_first_search = ( _graph, _start_coords, _end_coords ) => {
 				var visited_nodes = [];
 				var discarded_nodes = [];
 				var current_search_list = [];
 				var finished_searching = false;
-				var found_path = [];
+				var found_path = null;
 				
 
-				var current_search_list_as_nodes = () => { return _.map(current_search_list, (value, index) => { return value.coords }) };
 
-				var node_has_any_open_leaves = (_coords ) => {
-					return Boolean(
-						_.find( _graph[ _coords ], (value, index) => {
-							return !_.includes( current_search_list_as_nodes(), value );
-						})
-					);
-				};
+
 				
 				var unroll_to_last_open_node = ( _coords, _parent ) => {
 					//console.log(_coords, _parent);
 					
 					//	Stepping back one by one, check each current_search_list node to determine if any of the side-branches are reachable.
-					if( !node_has_any_open_leaves( _coords ) &&
+					if( !node_has_any_open_leaves( _graph, _coords, visited_nodes ) &&
 						current_search_list.length > 1 &&
 						_coords != _parent
 					){
@@ -118,23 +118,18 @@
 					
 					//console.log(visited_nodes);
 					
+					//console.log( _graph[ _coords ] )
 					
-					if( node_has_any_open_leaves( _coords ) ){
+					if( node_has_any_open_leaves( _graph, _coords, visited_nodes) ){
 						_.map( _graph[ _coords ], (value,index) => {
-							console.log( _coords + " => " + value, _.includes(current_search_list_as_nodes(), value), _.includes(visited_nodes, value)  )
-
 					
 							if( value == _end_coords.x + ',' + _end_coords.y ){
-								current_search_list.push( { coords: value, parent: _coords } );
-								
-								if( current_search_list.length < found_path.length ||
-									found_path.length == 0
-								){
-									//console.log( visited_nodes.concat( [_end_coords.x + ',' + _end_coords.y] ) );
-									found_path = current_search_list_as_nodes(); 
-								}
-								check_individual_node( value, _coords );
-							} else if( !_.includes(current_search_list_as_nodes(), value) ){
+								finished_searching = true;
+							
+								//console.log( visited_nodes.concat( [_end_coords.x + ',' + _end_coords.y] ) );
+								found_path = visited_nodes.concat( [_end_coords.x + ',' + _end_coords.y] );
+							
+							} else if( !_.includes(visited_nodes, value) && !finished_searching ){
 								check_individual_node( value, _coords );
 							} else {
 								//console.log("terminus")
@@ -255,18 +250,13 @@
 				
 				_.map(_grid, (row_value, row_index) => {
 					_.map(row_value, (col_value, col_index) => {
-						if( 
+						if( _.includes( _discarded_nodes, col_index + ',' + row_index ) ){
+							ctx.fillStyle = 'darksalmon';
+						} else if( 
 							(_successful_path[0] == col_index + ',' + row_index) ||
 							(_successful_path[ _successful_path.length-1 ] == col_index + ',' + row_index)
 						){
 							ctx.fillStyle = 'deeppink';
-						} else if(
-							_.includes( _successful_path, col_index + ',' + row_index ) &&
-							_.includes( _discarded_nodes, col_index + ',' + row_index )
-						){
-							ctx.fillStyle = 'indianred';
-						} else if( _.includes( _discarded_nodes, col_index + ',' + row_index ) ){
-							ctx.fillStyle = 'darksalmon';
 						} else if( _.includes( _successful_path, col_index + ',' + row_index ) ){
 							ctx.fillStyle = 'firebrick';
 						} else if(col_value == 1){
@@ -284,24 +274,24 @@
 			
 			document.addEventListener("DOMContentLoaded", (event) => { 
 				node_graph1 = build_node_graph_from_grid_with_start_point(grid1);
-				console.log(node_graph1);
 				node_graph2 = build_node_graph_from_grid_with_start_point(grid2);
-				//node_graph3 = build_node_graph_from_grid_with_start_point(grid3);
+				node_graph3 = build_node_graph_from_grid_with_start_point(grid3);
 				
 
 				var data1 = depth_first_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
 				var data2 = depth_first_search(node_graph2, {x: 24, y: 24}, {x: 15, y: 0});
-				//var data3 = depth_first_search(node_graph3, {x: 1, y: 1}, {x: 180, y: 43});
+				var data3 = depth_first_search(node_graph3, {x: 1, y: 1}, {x: 180, y: 43});
 
 				console.log( data1.successful_path );
 				console.log( data2.successful_path );
-				//console.log( data3.successful_path );
+				console.log( data3.successful_path );
 
+				//console.log( node_has_any_open_leaves(node_graph1, "3,4", successful_path1) );
 
 				
 				render_map( grid1, data1.successful_path, data1.discarded_nodes, '#canvas1');
 				render_map( grid2, data2.successful_path, data2.discarded_nodes, '#canvas2');
-				//render_map( grid3, data3.successful_path, data3.discarded_nodes, '#canvas3');
+				render_map( grid3, data3.successful_path, data3.discarded_nodes, '#canvas3');
 			});
 		
 			
