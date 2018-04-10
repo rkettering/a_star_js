@@ -94,31 +94,53 @@
 				var current_search_list = [];
 				var finished_searching = false;
 				var found_path = [];
+				var frame_count = 0;
 				
-				var extract_path_from_parent_tree = ( _current_node ) => {
+				var path_tree = {};
+				
+				/*var extract_path_from_parent_tree = ( _current_node ) => {
 					var _parent = visited_node_parent_tree[_current_node];
 					//console.log(_parent)
 					if( _parent ){
 						found_path.push( _parent );
 						extract_path_from_parent_tree( _parent );
 					} 
+				}*/
+				
+				var build_tree_from_parent_node_list = () => {
+					
 				}
 				
+				var transformToTree = ( arr ) => {
+					var nodes = {};    
+					return arr.filter(function(obj){
+						var id = obj["coords"],
+							parentId = obj["parent"];
+
+						nodes[id] = _.defaults(obj, nodes[id], { children: [] });
+						parentId && (nodes[parentId] = (nodes[parentId] || { children: [] }))["children"].push(obj);
+
+						return !parentId;
+					});    
+				}				
 				
 				var check_individual_node = ( _coords, _parent, _next_frame_search_list ) => {
 					//console.log(_coords, _parent, _next_frame_search_list,  node_has_any_open_leaves( _graph, _coords, visited_nodes));
 					
 				
 					if( _coords == _end_coords.x + ',' + _end_coords.y ){
+						visited_nodes.push( _coords );
 						console.log("finished!");
 						finished_searching = true;
-						extract_path_from_parent_tree( _start_coords.x + ',' + _start_coords.y );
-						console.log(found_path);
+						//extract_path_from_parent_tree( _start_coords.x + ',' + _start_coords.y );
+						//extract_path_from_successful_child_and_parent_coords( _coords, _parent );
+						console.log( transformToTree(visited_node_parent_tree) );
 						
 					} else if ( node_has_any_open_leaves( _graph, _coords, visited_nodes) ) {
 						_.map( _graph[ _coords ], (value,index) => {
 							visited_nodes.push( value );
-							visited_node_parent_tree[_coords] = value;
+							//console.log(visited_nodes);
+							visited_node_parent_tree.push({ coords: value, parent: _coords });
 							_next_frame_search_list.push( { coords: value, parent: _coords } );
 						})
 					}
@@ -127,12 +149,16 @@
 
 				var check_nodes = ( _previous_frame_search_list ) => {
 					var _next_frame_search_list = [];
+					frame_count += 1;
 
 					_.map( _previous_frame_search_list, (value, index) => {
-						check_individual_node( value.coords, value.parent, _next_frame_search_list );
+						if( !finished_searching ){
+							check_individual_node( value.coords, value.parent, _next_frame_search_list );
+						}
 					});
+					//console.log(visited_nodes);
 					
-					if( !finished_searching && _next_frame_search_list.length != 0 ){
+					if( !finished_searching ){
 						check_nodes( _next_frame_search_list );
 					}
 					
@@ -140,6 +166,7 @@
 
 				
 				check_nodes( [{coords: _start_coords.x + ',' + _start_coords.y, parent: null, }] );
+				console.log(visited_node_parent_tree)
 				return {successful_path: found_path, discarded_nodes: visited_nodes};
 			}  
 
@@ -282,7 +309,7 @@
 
 				var data1 = breadth_first_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
 				var data2 = breadth_first_search(node_graph2, {x: 24, y: 24}, {x: 15, y: 0});
-				//var data3 = breadth_first_search(node_graph3, {x: 1, y: 1}, {x: 180, y: 43});
+				var data3 = breadth_first_search(node_graph3, {x: 1, y: 1}, {x: 180, y: 43});
 
 				//console.log( data1.successful_path );
 				//console.log( data2.successful_path );
