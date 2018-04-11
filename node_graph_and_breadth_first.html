@@ -109,6 +109,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 			var node_has_any_open_leaves = ( _graph, _coords, visited_nodes ) => {
 				return Boolean(
 					_.find( _graph[ _coords ], (value, index) => {
@@ -116,6 +125,72 @@
 					})
 				);
 			};
+	
+	
+	
+	
+			var depth_first_search = ( _graph, _start_coords, _end_coords ) => {
+				var visited_nodes = [];
+				var discarded_nodes = [];
+				var current_search_list = [];
+				var finished_searching = false;
+				var found_path = null;
+				
+
+
+
+				
+				var unroll_to_last_open_node = ( _coords, _parent ) => {
+					//console.log(_coords, _parent);
+					
+					//	Stepping back one by one, check each current_search_list node to determine if any of the side-branches are reachable.
+					if( !node_has_any_open_leaves( _graph, _coords, visited_nodes ) &&
+						current_search_list.length > 1 &&
+						_coords != _parent
+					){
+						discarded_nodes.push( _coords );
+						_.remove( current_search_list, { coords: _coords });
+						unroll_to_last_open_node( _parent, current_search_list[ current_search_list.length - 1 ].parent );
+					}
+				}
+				
+				var check_individual_node = ( _coords, _parent ) => {
+					visited_nodes.push( _coords );
+					current_search_list.push( { coords: _coords, parent: _parent } );
+					
+					//console.log(visited_nodes);
+					
+					//console.log( _graph[ _coords ] )
+					
+					if( node_has_any_open_leaves( _graph, _coords, visited_nodes) ){
+						_.map( _graph[ _coords ], (value,index) => {
+					
+							if( value == _end_coords.x + ',' + _end_coords.y ){
+								finished_searching = true;
+							
+								//console.log( visited_nodes.concat( [_end_coords.x + ',' + _end_coords.y] ) );
+								found_path = visited_nodes.concat( [_end_coords.x + ',' + _end_coords.y] );
+							
+							} else if( !_.includes(visited_nodes, value) && !finished_searching ){
+								check_individual_node( value, _coords );
+							} else {
+								//console.log("terminus")
+							}
+						})
+					} else {
+						unroll_to_last_open_node( _coords, _parent );
+					}
+					
+					if( found_path ){
+						return { successful_path: found_path, discarded_nodes: discarded_nodes};
+					}
+				}
+				
+				return check_individual_node( _start_coords.x + ',' + _start_coords.y, null );
+			}  
+
+
+
 				
 			var breadth_first_search = ( _graph, _start_coords, _end_coords ) => {
 				var visited_nodes = [];
@@ -184,10 +259,18 @@
 					
 				}
 
+				// Try doing a depth-first search to determine if the maze is even solvable.
+				// If I'm reading the literature right, BFS can't actually determine if a maze is solvable, and even if it could DFS is faster.
+				// If DFS comes back with a dud, error out.
+
+				var dfs_data = depth_first_search( _graph, _start_coords, _end_coords );
 				
-				check_nodes( [{coords: _start_coords.x + ',' + _start_coords.y, parent: null, }] );
-				//console.log(visited_node_parent_tree)
-				return {successful_path: found_path, discarded_nodes: visited_nodes};
+				if( dfs_data ){
+					check_nodes( [{coords: _start_coords.x + ',' + _start_coords.y, parent: null, }] );
+					return {successful_path: found_path, discarded_nodes: visited_nodes};
+				} else {
+					return null;
+				}
 			}  
 
 
@@ -323,6 +406,17 @@
 				render_search_metrics(_successful_path, _discarded_nodes, _textinfo_id);
 			}
 
+			var render_error = (  _canvasId ) => {
+				var ctx = $(_canvasId)[0].getContext("2d");
+
+				ctx.canvas.height = 100 ;
+				ctx.canvas.width = 200 ;
+				ctx.textAlign = 'center';
+				
+				ctx.fillText('Cannot find path through maze.', 100, 50);
+			}
+
+
 
 			var convert_text_to_array = ( text ) => {
 				var array_of_individual_rows = text.split(/\r?\n/);
@@ -383,7 +477,6 @@
 				render_map( grid1, data1.successful_path, data1.discarded_nodes, '#canvas1', '#grid1info');
 				render_map( grid2, data2.successful_path, data2.discarded_nodes, '#canvas2', '#grid2info');
 				render_map( grid3, data3.successful_path, data3.discarded_nodes, '#canvas3', '#grid3info');
-				console.log(data1.discarded_nodes);
 
 				$('.user_submit_button').on('click', () => {
 					var string_array = convert_text_to_array( 
@@ -394,7 +487,11 @@
 					
 					var node_graph4 = build_node_graph_from_grid(grid_and_coords.grid);
 					var data4 = breadth_first_search(node_graph4, grid_and_coords.start_coords, grid_and_coords.end_coords);
-					render_map( grid_and_coords.grid, data4.successful_path, data4.discarded_nodes, '#canvas4', '#grid4info');
+					if( data4 ) {
+						render_map( grid_and_coords.grid, data4.successful_path, data4.discarded_nodes, '#canvas4', '#grid4info');
+					} else {
+						render_error( '#canvas4' );
+					}
 				});
 
 			});
@@ -425,7 +522,8 @@
 
 			<h3>User-Defined Grid:</h3>
 			<p>Supply a <b>.</b> for open blocks, a <b>#</b> for closed blocks, an <b>A</b> for the start block, and a <b>B</b> for the destination block.</p>
-			<p><b>Note:</b>  There is no data validation on this whatsoever; if it's not in the exact required format, expect strange and interesting errors.</p>
+			<p><b>Note:</b>  There is no format validation on this whatsoever; if it's not in the exact required format, expect strange and interesting errors.</p>
+			<p><b>Note2:</b>  We <b>do</b> detect a failure to navigate the maze, via a Depth-First search.</p>
 			<p>Here's an example grid:</p>
 			<pre>
 ##########
