@@ -198,28 +198,29 @@
 				var costs_so_far = {};  //a map of node addresses (keys) to move cost (values)
 				var came_from = {}; //a map of node addresses (keys) to node addresses (values) 
 
-				const cts = (_coords) => _coords.x + ',' + _coords.y;
 				
-
+				const remove_item_from_obj = (obj, victim) => _.pick(obj, _.filter(_.keys(obj), (val)=> val != victim ))
 				
 				const compute_node_heuristic = ( _node_coords, _end_coords ) => {
 					return Math.hypot( _node_coords.x - _end_coords.x, _node_coords.y - _end_coords.y);
 				}
 				
 				//search a queue for whatever node has the highest value, and extract that node's coords
-				const get_highest_value = (obj) => {
-					return _.keys(obj).reduce((a, b) => obj[a] > obj[b] ? a : b);
+				const get_lowest_value = (obj) => {
+					return _.keys(obj).reduce((a, b) => obj[a] < obj[b] ? a : b);
 				}
 
-				frontier[ cts(_start_coords) ] = 0;
+
+				frontier[ tuple_to_addr(_start_coords) ] = 0;
+				costs_so_far[ tuple_to_addr(_start_coords) ] = 0;
 				
 				while( _.size(frontier) > 0 ){
 					console.log(frontier);
 				
-					var current_node = get_highest_value(frontier)
-					_.remove(frontier, current_node);
+					var current_node = get_lowest_value(frontier)
+					frontier = remove_item_from_obj(frontier, current_node);
 				
-					if(current_node == _end_coords){
+					if(current_node == tuple_to_addr(_end_coords)){
 						break;
 					}
 				
@@ -430,6 +431,10 @@
 			
 			var addr_to_tuple = (the_string) => {
 				return{ x: Number(the_string.split(',')[0]), y: Number(the_string.split(',')[1]) }
+			}
+			
+			var tuple_to_addr = (the_tuple) => {
+				return  the_tuple.x + ',' + the_tuple.y;
 			}
 			
 			var convert_textarray_to_grid_and_start_end_coords = ( textarray ) => {
