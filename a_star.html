@@ -232,7 +232,7 @@
 						){
 							costs_so_far[next_node] = new_cost;
 						
-							frontier[next_node] = compute_node_heuristic( addr_to_tuple(next_node), _end_coords );
+							frontier[next_node] = new_cost + compute_node_heuristic( addr_to_tuple(next_node), _end_coords );
 							came_from[next_node] = current_node;
 						
 						}
@@ -240,7 +240,7 @@
 					})
 				}
 
-				console.warn( came_from, cost_so_far );
+				console.warn( came_from, costs_so_far );
 				
 			}
 
