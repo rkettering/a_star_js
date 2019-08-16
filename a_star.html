@@ -197,7 +197,7 @@
 				var frontier = {}; //current_search_list?
 				var costs_so_far = {};  //a map of node addresses (keys) to move cost (values)
 				var came_from = {}; //a map of node addresses (keys) to node addresses (values) 
-
+				other_came_from = [];
 				
 				const remove_item_from_obj = (obj, victim) => _.pick(obj, _.filter(_.keys(obj), (val)=> val != victim ))
 				
@@ -215,9 +215,9 @@
 				costs_so_far[ tuple_to_addr(_start_coords) ] = 0;
 				
 				while( _.size(frontier) > 0 ){
-					console.log(frontier);
 				
 					var current_node = get_lowest_value(frontier)
+					console.log(frontier, current_node);
 					frontier = remove_item_from_obj(frontier, current_node);
 				
 					if(current_node == tuple_to_addr(_end_coords)){
@@ -228,19 +228,34 @@
 						var new_cost = costs_so_far[ current_node ] + 1; //this is where we'd add a weighted graph lookup for movecost.
 						
 						if(
-							!_.includes(costs_so_far, next_node) || new_cost < costs_so_far[next_node] 
+							!(_.includes(costs_so_far, next_node)) || new_cost < costs_so_far[next_node]
 						){
 							costs_so_far[next_node] = new_cost;
 						
 							frontier[next_node] = new_cost + compute_node_heuristic( addr_to_tuple(next_node), _end_coords );
 							came_from[next_node] = current_node;
+							other_came_from.push( {cur: current_node, nex: next_node } );
 						
 						}
 
 					})
 				}
+				
+				console.error( other_came_from )
 
-				console.warn( came_from, costs_so_far );
+				const reconstruct_path = (came_from, start_node, goal_node) => {
+				debugger;
+					var current_node = goal_node;
+					var path = [];
+// 					while( current_node != start_node ){
+// 						path.push(current_node);
+// 						current_node = came_from[current_node];
+// 					}
+					return path;
+				}
+
+				console.warn( reconstruct_path(came_from, tuple_to_addr(_start_coords), tuple_to_addr(_end_coords) ) )
+//				console.warn( came_from, costs_so_far );
 				
 			}
 
