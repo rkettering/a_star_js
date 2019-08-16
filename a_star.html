@@ -1,0 +1,506 @@
+<html>
+	<head>
+		<style>
+			html {
+				font-family: sans-serif;
+				padding: 2em;
+			}
+			.legend h5 {
+				margin-top: 0;
+			}
+			.legend {
+				padding: 1em;
+				border: 1px solid black;
+				margin-bottom: 2em;
+				width: fit-content;
+			}
+			
+			span.color_block {
+				display: inline-block;
+				width: 1em;
+				height: 1em;
+			}
+			pre {
+				background-color: #e3eae8;
+				border-radius: 8px;
+				padding: 1em;
+				width: fit-content;
+			}
+			canvas {
+				border: 1px dashed grey;
+			}
+			textarea {
+				height: 10em;
+				width: 20em;
+				font-family: monospace;
+			}
+		</style>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		<script>
+
+
+
+
+
+			var build_node_graph_from_grid = ( _grid ) => {
+				var flat_array = {};
+				
+				var push_if_not_null = (_array, _push_val) => {
+					if(_push_val != null){
+						_array.push( _push_val );
+					}
+				}
+				
+				var is_outside_bounds = (_grid, coords_x, coords_y ) => {
+					return	(
+								coords_x < 0 ||
+								coords_x >= _grid[0].length ||
+								coords_y < 0 ||
+								coords_y >= _grid.length
+							);
+				}
+			
+				var check_adjacencies = ( _grid, _coords ) => {
+					var adjacent_nodes = [];
+			
+					//check every adjacent tile in clockwise order, starting from the north.
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x,		y: _coords.y - 1 }, ));
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x + 1,	y: _coords.y },		));
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x,		y: _coords.y + 1 }, ));
+					push_if_not_null( adjacent_nodes, check_tile ( _grid, {x: _coords.x - 1,	y: _coords.y },		));
+				
+					return adjacent_nodes;
+				}
+
+				var check_tile = ( _grid, _coords ) => {
+					if( !is_outside_bounds(_grid, _coords.x, _coords.y) && !_grid[ _coords.y ][ _coords.x ] ){
+						/*
+							If the tile we're checking is out of bounds, then it's blocked.
+							If the tile we're checking is open, it's a valid node connection, so we return it (so we can add it to the graph).
+						*/
+						return _coords.x + "," + _coords.y;
+					} else {
+						return null;
+					}
+				};
+
+
+				var build_graph = ( _grid ) => {
+					var graph_as_adjacency_list = [];
+					
+					
+					_.map( _grid, (row_value, row_index) => {
+						_.map( row_value, (col_value, col_index) => {
+
+							//using this to skip solid tiles; we already handle tracking adjacencies *into* solid tile in the check_adjacencies function, but we need to skip looking *outwards* from solid tiles as well.
+							if( !_grid[ row_index ][ col_index ] ){
+								graph_as_adjacency_list[col_index + "," + row_index] = check_adjacencies( _grid, { x: col_index, y: row_index } );
+							}	
+						})
+					});
+					
+					return graph_as_adjacency_list;
+				}
+				
+				return build_graph(_grid);
+			}
+
+
+
+
+
+
+
+
+
+
+
+
+
+			var node_has_any_open_leaves = ( _graph, _coords, visited_nodes ) => {
+				return Boolean(
+					_.find( _graph[ _coords ], (value, index) => {
+						return !_.includes( visited_nodes, value );
+					})
+				);
+			};
+	
+	
+	
+	
+			var depth_first_search = ( _graph, _start_coords, _end_coords ) => {
+				var visited_nodes = [];
+				var discarded_nodes = [];
+				var current_search_list = [];
+				var finished_searching = false;
+				var found_path = null;
+				
+
+
+
+				
+				var unroll_to_last_open_node = ( _coords, _parent ) => {
+					//console.log(_coords, _parent);
+					
+					//	Stepping back one by one, check each current_search_list node to determine if any of the side-branches are reachable.
+					if( !node_has_any_open_leaves( _graph, _coords, visited_nodes ) &&
+						current_search_list.length > 1 &&
+						_coords != _parent
+					){
+						discarded_nodes.push( _coords );
+						_.remove( current_search_list, { coords: _coords });
+						unroll_to_last_open_node( _parent, current_search_list[ current_search_list.length - 1 ].parent );
+					}
+				}
+				
+				var check_individual_node = ( _coords, _parent ) => {
+					visited_nodes.push( _coords );
+					current_search_list.push( { coords: _coords, parent: _parent } );
+					
+					//console.log(visited_nodes);
+					
+					//console.log( _graph[ _coords ] )
+					
+					if( node_has_any_open_leaves( _graph, _coords, visited_nodes) ){
+						_.map( _graph[ _coords ], (value,index) => {
+					
+							if( value == _end_coords.x + ',' + _end_coords.y ){
+								finished_searching = true;
+							
+								//console.log( visited_nodes.concat( [_end_coords.x + ',' + _end_coords.y] ) );
+								found_path = visited_nodes.concat( [_end_coords.x + ',' + _end_coords.y] );
+							
+							} else if( !_.includes(visited_nodes, value) && !finished_searching ){
+								check_individual_node( value, _coords );
+							} else {
+								//console.log("terminus")
+							}
+						})
+					} else {
+						unroll_to_last_open_node( _coords, _parent );
+					}
+					
+					if( found_path ){
+						return { successful_path: found_path, discarded_nodes: discarded_nodes};
+					}
+				}
+				
+				return check_individual_node( _start_coords.x + ',' + _start_coords.y, null );
+			}  
+
+			var a_star_search = ( _graph, _start_coords, _end_coords ) => {
+				var visited_nodes = []
+				var fresh_nodes = [];
+				
+				// {x: number, y: number, g: number } -- when we assign G it's both that node and the cost of the parent
+				
+				compute_node_heuristic( _node_coords, _end_coords ) => {
+					return Math.hypot( _node_coords.x - _end_coords.x, _node_coords.y - _end_coords.y);
+				}
+				
+				visit_node = _.find( fresh_nodes,  "lowest cost node");
+				
+			}
+
+				
+			var breadth_first_search = ( _graph, _start_coords, _end_coords ) => {
+				var visited_nodes = [];
+				var visited_node_parent_tree = [];
+				var finished_searching = false;
+				var found_path = [];
+				var frame_count = 0;
+				
+				var path_tree = [[]];
+				
+				var extract_path_from_path_tree = ( _parent, _iterator ) => {
+					
+					var sought_node = _.find(path_tree[_iterator], ( value, index ) => { return value.coords == _parent; });
+					 
+					if( _iterator >= 0 ){
+						found_path.push( _parent );
+						extract_path_from_path_tree( sought_node.parent, _iterator - 1 );
+					} else {
+						found_path.push( _start_coords.x + ',' + _start_coords.y );
+					}
+				}
+				
+				
+				
+				var check_individual_node = ( _coords, _parent, _next_frame_search_list, frame_count ) => {
+					//console.log(_coords, _parent, _next_frame_search_list,  node_has_any_open_leaves( _graph, _coords, visited_nodes));
+					
+				
+					if( _coords == _end_coords.x + ',' + _end_coords.y ){
+						visited_nodes.push( _coords );
+						console.log("finished!");
+						finished_searching = true;
+						path_tree[frame_count].push( { coords: _parent, parent: _coords	 } );
+
+						found_path.push( _end_coords.x + ',' + _end_coords.y );
+						extract_path_from_path_tree( _parent, path_tree.length - 1 );
+						
+					} else if ( node_has_any_open_leaves( _graph, _coords, visited_nodes) ) {
+						_.map( _graph[ _coords ], (value,index) => {
+							visited_nodes.push( value );
+							visited_node_parent_tree.push({ coords: value, parent: _coords });
+
+							path_tree[frame_count].push( { coords: value, parent: _coords } );
+
+							_next_frame_search_list.push( { coords: value, parent: _coords } );
+						})
+					}
+				}
+	
+
+				var check_nodes = ( _previous_frame_search_list ) => {
+					var _next_frame_search_list = [];
+
+					_.map( _previous_frame_search_list, (value, index) => {
+						if( !finished_searching ){
+							check_individual_node( value.coords, value.parent, _next_frame_search_list, frame_count );
+						}
+					});
+					//console.log(visited_nodes);
+					
+					if( !finished_searching ){
+						frame_count += 1;
+						path_tree[frame_count] = [];
+						check_nodes( _next_frame_search_list );
+					}
+					
+				}
+
+				// Try doing a depth-first search to determine if the maze is even solvable.
+				// If I'm reading the literature right, BFS can't actually determine if a maze is solvable, and even if it could DFS is faster.
+				// If DFS comes back with a dud, error out.
+
+				var dfs_data = depth_first_search( _graph, _start_coords, _end_coords );
+				
+				if( dfs_data ){
+					check_nodes( [{coords: _start_coords.x + ',' + _start_coords.y, parent: null, }] );
+					return {successful_path: found_path, discarded_nodes: visited_nodes};
+				} else {
+					return null;
+				}
+			}  
+
+
+
+			/*--------------------------- The three grids we want to search ---------------------------*/
+
+
+			var grid1 = [
+							[1,1,1,1,1,1,1,1,1,1],
+							[1,0,0,0,0,1,0,0,0,1],
+							[1,0,1,0,1,1,0,1,0,1],
+							[1,0,1,0,1,1,0,1,0,1],
+							[1,0,1,0,0,0,0,1,0,1],
+							[1,0,1,0,1,1,0,1,0,1],
+							[1,0,0,0,0,1,0,0,0,1],
+							[1,1,1,1,1,1,1,1,1,1]
+						];
+
+
+			var grid2 = [
+							[1,1,1,1,1,1,1,1,1,1],
+							[1,0,0,0,1,1,0,0,0,1],
+							[1,0,0,0,1,1,0,0,0,1],
+							[1,0,0,0,1,1,0,0,0,1],
+							[1,0,0,0,1,1,0,0,0,1],
+							[1,0,0,0,1,1,0,0,0,1],
+							[1,0,0,0,0,0,0,0,0,1],
+							[1,1,1,1,1,1,1,1,1,1]
+						]
+
+			var grid3 = [
+							[1,1,1,1,1,1,1,1,1,1],
+							[0,0,0,0,0,1,0,0,0,1],
+							[0,0,1,1,1,1,0,1,0,1],
+							[0,0,1,1,1,1,1,1,0,1],
+							[0,0,1,0,1,1,0,1,0,1],
+							[0,0,1,0,1,1,0,1,0,1],
+							[0,0,0,0,1,1,0,0,0,0],
+							[0,1,0,0,0,0,0,0,0,0]
+						];
+
+			var render_search_metrics = ( _successful_path, _discarded_nodes, _textinfo_id) => {
+				$(_textinfo_id).html( "Search Steps: " + _discarded_nodes.length + ", Path Length: " + _successful_path.length );
+			}
+
+			var render_map = ( _grid, _successful_path, _discarded_nodes, _canvasId, _textinfo_id ) => {
+				var tile_width = 10;
+				var ctx = $(_canvasId)[0].getContext("2d");
+
+				ctx.canvas.height = _grid.length * tile_width ;
+				ctx.canvas.width = _grid[0].length * tile_width ;
+				
+				_.map(_grid, (row_value, row_index) => {
+					_.map(row_value, (col_value, col_index) => {
+						if( 
+							(_successful_path[0] == col_index + ',' + row_index) ||
+							(_successful_path[ _successful_path.length-1 ] == col_index + ',' + row_index)
+						){
+							ctx.fillStyle = 'deeppink';
+						} else if(
+							_.includes( _successful_path, col_index + ',' + row_index ) &&
+							_.includes( _discarded_nodes, col_index + ',' + row_index )
+						){
+							ctx.fillStyle = 'indianred';
+						} else if( _.includes( _discarded_nodes, col_index + ',' + row_index ) ){
+							ctx.fillStyle = 'darksalmon';
+						} else if( _.includes( _successful_path, col_index + ',' + row_index ) ){
+							ctx.fillStyle = 'firebrick';
+						} else if(col_value == 1){
+							ctx.fillStyle = 'dimgrey';
+						} else {
+							ctx.fillStyle = 'lightgrey';
+						}
+					
+						ctx.fillRect(col_index * tile_width, row_index * tile_width, tile_width, tile_width);
+					});
+				});
+				render_search_metrics(_successful_path, _discarded_nodes, _textinfo_id);
+			}
+
+			var render_error = (  _canvasId ) => {
+				var ctx = $(_canvasId)[0].getContext("2d");
+
+				ctx.canvas.height = 100 ;
+				ctx.canvas.width = 200 ;
+				ctx.textAlign = 'center';
+				
+				ctx.fillText('Cannot find path through maze.', 100, 50);
+			}
+
+
+
+			var convert_text_to_array = ( text ) => {
+				var array_of_individual_rows = text.split(/\r?\n/);
+				var array_of_arrays = [];
+				
+				if( _.isArray( array_of_individual_rows ) ){
+					array_of_arrays = _.map(array_of_individual_rows, (value,index) => {
+						return value.split('');
+					});
+				}
+				
+				return array_of_arrays;
+			}
+			
+			var convert_textarray_to_grid_and_start_end_coords = ( textarray ) => {
+				var start_coords;
+				var end_coords;
+				
+				var grid = _.map(textarray, (row_value, row_index) => {
+					return _.map(row_value, (col_value, col_index) => {
+						if( col_value == 'A' ){
+							start_coords = {x: col_index, y: row_index };
+							return 0;
+						} else if ( col_value == 'B' ){
+							end_coords = {x: col_index, y: row_index };
+							return 0;
+						} else if ( col_value == '.' ){
+							return 0;
+						} else {
+							return 1;
+						}
+					});
+				});
+				
+				return {grid: grid, start_coords: start_coords, end_coords: end_coords };
+			}
+			
+			
+			
+			document.addEventListener("DOMContentLoaded", (event) => { 
+				node_graph1 = build_node_graph_from_grid(grid1);
+				//console.log(node_graph1);
+				node_graph2 = build_node_graph_from_grid(grid2);
+				node_graph3 = build_node_graph_from_grid(grid3);
+				
+
+				var data1 = breadth_first_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
+				var data2 = breadth_first_search(node_graph2, {x: 1, y: 1}, {x: 8, y: 4});
+				var data3 = breadth_first_search(node_graph3, {x: 1, y: 1}, {x: 8, y: 4});
+
+				//console.log( data1.successful_path );
+				//console.log( data2.successful_path );
+				//console.log( data3.successful_path );
+
+				//console.log( node_has_any_open_leaves(node_graph1, "3,4", successful_path1) );
+
+				
+				render_map( grid1, data1.successful_path, data1.discarded_nodes, '#canvas1', '#grid1info');
+				render_map( grid2, data2.successful_path, data2.discarded_nodes, '#canvas2', '#grid2info');
+				render_map( grid3, data3.successful_path, data3.discarded_nodes, '#canvas3', '#grid3info');
+
+				$('.user_submit_button').on('click', () => {
+					var string_array = convert_text_to_array( 
+						$('textarea.inputText').val()
+					);
+					var grid_and_coords = convert_textarray_to_grid_and_start_end_coords(string_array);
+					
+					
+					var node_graph4 = build_node_graph_from_grid(grid_and_coords.grid);
+					var data4 = breadth_first_search(node_graph4, grid_and_coords.start_coords, grid_and_coords.end_coords);
+					if( data4 ) {
+						render_map( grid_and_coords.grid, data4.successful_path, data4.discarded_nodes, '#canvas4', '#grid4info');
+					} else {
+						render_error( '#canvas4' );
+					}
+				});
+
+			});
+		
+			
+			
+		</script>
+	</head>
+	<body>
+		<h2>Breadth-First Maze Search</h2>
+		<div class="legend">
+			<h5>Legend:</h5>
+			<div><span class="color_block" style="background-color: dimgrey;"></span> Solid wall.</div> 
+			<div><span class="color_block" style="background-color: lightgrey;"></span> Open tile, not tested by algorithm.</div> 
+			<div><span class="color_block" style="background-color: darksalmon;"></span> Tested by algorithm, not selected as shortest path.</div> 
+			<div><span class="color_block" style="background-color: indianred;"></span> Selected as shortest path.</div> 
+			<div><span class="color_block" style="background-color: deeppink;"></span> Start/End tile.</div> 
+		</div>
+		<div id="drawnMap">
+			<h3>Grid 1:</h3><div id="grid1info"></div>
+			<canvas id="canvas1"></canvas>
+			<br>
+			<h3>Grid 2:</h3><div id="grid2info"></div>
+			<canvas id="canvas2"></canvas>
+			<br>
+			<h3>Grid 3:</h3><div id="grid3info"></div>
+			<canvas id="canvas3"></canvas>
+
+			<h3>User-Defined Grid:</h3>
+			<p>Supply a <b>.</b> for open blocks, a <b>#</b> for closed blocks, an <b>A</b> for the start block, and a <b>B</b> for the destination block.</p>
+			<p><b>Note:</b>  There is no format validation on this whatsoever; if it's not in the exact required format, expect strange and interesting errors.</p>
+			<p><b>Note2:</b>  We <b>do</b> detect a failure to navigate the maze, via a Depth-First search.</p>
+			<p>Here's an example grid:</p>
+			<pre>
+##########
+#A...#...#
+#.#.##.#.#
+#.#.##.#.#
+#.#....#B#
+#.#.##.#.#
+#....#...#
+##########
+			</pre>
+			<TextArea class="inputText"></TextArea>
+			<br>
+			<button class="user_submit_button">Find Path</button>
+			<br>
+			<br>
+			<div id="grid4info"></div>
+			<canvas id="canvas4"></canvas>
+		</div>
+	</body>
+</html>
+
+
