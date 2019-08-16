@@ -189,17 +189,57 @@
 				return check_individual_node( _start_coords.x + ',' + _start_coords.y, null );
 			}  
 
+
 			var a_star_search = ( _graph, _start_coords, _end_coords ) => {
-				var visited_nodes = []
-				var fresh_nodes = [];
+				var visited_nodes = [];
+				var discarded_nodes = [];
+
+				var frontier = {}; //current_search_list?
+				var costs_so_far = {};  //a map of node addresses (keys) to move cost (values)
+				var came_from = {}; //a map of node addresses (keys) to node addresses (values) 
+
+				const cts = (_coords) => _coords.x + ',' + _coords.y;
 				
-				// {x: number, y: number, g: number } -- when we assign G it's both that node and the cost of the parent
+
 				
-				compute_node_heuristic( _node_coords, _end_coords ) => {
+				const compute_node_heuristic = ( _node_coords, _end_coords ) => {
 					return Math.hypot( _node_coords.x - _end_coords.x, _node_coords.y - _end_coords.y);
 				}
 				
-				visit_node = _.find( fresh_nodes,  "lowest cost node");
+				//search a queue for whatever node has the highest value, and extract that node's coords
+				const get_highest_value = (obj) => {
+					return _.keys(obj).reduce((a, b) => obj[a] > obj[b] ? a : b);
+				}
+
+				frontier[ cts(_start_coords) ] = 0;
+				
+				while( _.size(frontier) > 0 ){
+					console.log(frontier);
+				
+					var current_node = get_highest_value(frontier)
+					_.remove(frontier, current_node);
+				
+					if(current_node == _end_coords){
+						break;
+					}
+				
+					_.map( _graph[ current_node ], (next_node, index) => {
+						var new_cost = costs_so_far[ current_node ] + 1; //this is where we'd add a weighted graph lookup for movecost.
+						
+						if(
+							!_.includes(costs_so_far, next_node) || new_cost < costs_so_far[next_node] 
+						){
+							costs_so_far[next_node] = new_cost;
+						
+							frontier[next_node] = compute_node_heuristic( addr_to_tuple(next_node), _end_coords );
+							came_from[next_node] = current_node;
+						
+						}
+
+					})
+				}
+
+				console.warn( came_from, cost_so_far );
 				
 			}
 
@@ -388,6 +428,10 @@
 				return array_of_arrays;
 			}
 			
+			var addr_to_tuple = (the_string) => {
+				return{ x: Number(the_string.split(',')[0]), y: Number(the_string.split(',')[1]) }
+			}
+			
 			var convert_textarray_to_grid_and_start_end_coords = ( textarray ) => {
 				var start_coords;
 				var end_coords;
@@ -423,6 +467,7 @@
 				var data1 = breadth_first_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
 				var data2 = breadth_first_search(node_graph2, {x: 1, y: 1}, {x: 8, y: 4});
 				var data3 = breadth_first_search(node_graph3, {x: 1, y: 1}, {x: 8, y: 4});
+				var data4 = a_star_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
 
 				//console.log( data1.successful_path );
 				//console.log( data2.successful_path );
