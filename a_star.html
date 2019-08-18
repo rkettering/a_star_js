@@ -110,7 +110,99 @@
 
 
 
+class QElement { 
+    constructor(element, priority) 
+    { 
+        this.element = element; 
+        this.priority = priority; 
+    } 
+} 
+  
+// PriorityQueue class 
+class PriorityQueue { 
+  
+    // An array is used to implement priority 
+    constructor() 
+    { 
+        this.items = []; 
+    } 
+  
+	// enqueue function to add element 
+	// to the queue as per priority 
+	enqueue(element, priority) 
+	{ 
+		// creating object from queue element 
+		var qElement = new QElement(element, priority); 
+		var contain = false; 
+  
+		// iterating through the entire 
+		// item array to add element at the 
+		// correct location of the Queue 
+		for (var i = 0; i < this.items.length; i++) { 
+			if (this.items[i].priority > qElement.priority) { 
+				// Once the correct location is found it is 
+				// enqueued 
+				this.items.splice(i, 0, qElement); 
+				contain = true; 
+				break; 
+			} 
+		} 
+  
+		// if the element have the highest priority 
+		// it is added at the end of the queue 
+		if (!contain) { 
+			this.items.push(qElement); 
+		} 
+	}
+	
+	// dequeue method to remove 
+	// element from the queue 
+	dequeue() 
+	{ 
+		// return the dequeued element 
+		// and remove it. 
+		// if the queue is empty 
+		// returns Underflow 
+		if (this.isEmpty()) 
+			return "Underflow"; 
+		return this.items.shift(); 
+	}
 
+	// front function 
+	front() 
+	{ 
+		// returns the highest priority element 
+		// in the Priority queue without removing it. 
+		if (this.isEmpty()) 
+			return "No elements in Queue"; 
+		return this.items[0]; 
+	}
+
+	// rear function 
+	rear() 
+	{ 
+		// returns the lowest priorty 
+		// element of the queue 
+		if (this.isEmpty()) 
+			return "No elements in Queue"; 
+		return this.items[this.items.length - 1]; 
+	}
+
+	// isEmpty function 
+	isEmpty() 
+	{ 
+		// return true if the queue is empty. 
+		return this.items.length == 0; 
+	} 
+
+	printPQueue() 
+	{ 
+		var str = ""; 
+		for (var i = 0; i < this.items.length; i++) 
+			str += this.items[i].element + " "; 
+		return str; 
+	}
+} 
 
 
 
@@ -194,7 +286,8 @@
 				var visited_nodes = [];
 				var discarded_nodes = [];
 
-				var frontier = {}; //current_search_list?
+//				var frontier = {}; //current_search_list?
+				var frontier = new PriorityQueue();
 				var costs_so_far = {};  //a map of node addresses (keys) to move cost (values)
 				var came_from = {}; //a map of node addresses (keys) to node addresses (values) 
 				other_came_from = [];
@@ -211,50 +304,63 @@
 				}
 
 
-				frontier[ tuple_to_addr(_start_coords) ] = 0;
+//				frontier[ tuple_to_addr(_start_coords) ] = 0;
+				frontier.enqueue( tuple_to_addr(_start_coords), 0);
 				costs_so_far[ tuple_to_addr(_start_coords) ] = 0;
 				
-				while( _.size(frontier) > 0 ){
+				while( !frontier.isEmpty() ){
 				
-					var current_node = get_lowest_value(frontier)
+					//var current_node = get_lowest_value(frontier)
+					var current_node = frontier.dequeue();
 					console.log(frontier, current_node);
-					frontier = remove_item_from_obj(frontier, current_node);
+					//frontier = remove_item_from_obj(frontier, current_node);
 				
-					if(current_node == tuple_to_addr(_end_coords)){
+					if(current_node.element == tuple_to_addr(_end_coords)){
 						break;
 					}
 				
-					_.map( _graph[ current_node ], (next_node, index) => {
-						var new_cost = costs_so_far[ current_node ] + 1; //this is where we'd add a weighted graph lookup for movecost.
+					_.map( _graph[ current_node.element ], (next_node, index) => {
+						var new_cost = costs_so_far[ current_node.element ] + 1; //this is where we'd add a weighted graph lookup for movecost.
 						
 						if(
 							!(_.includes(costs_so_far, next_node)) || new_cost < costs_so_far[next_node]
 						){
 							costs_so_far[next_node] = new_cost;
 						
-							frontier[next_node] = new_cost + compute_node_heuristic( addr_to_tuple(next_node), _end_coords );
-							came_from[next_node] = current_node;
-							other_came_from.push( {cur: current_node, nex: next_node } );
+							//frontier[next_node] = new_cost + compute_node_heuristic( addr_to_tuple(next_node), _end_coords );
+							frontier.enqueue(next_node, new_cost + compute_node_heuristic( addr_to_tuple(next_node), _end_coords ));
+							came_from[next_node] = current_node.element;
+							other_came_from.push( {cur: current_node.element, nex: next_node } );
 						
 						}
 
 					})
 				}
 				
-				console.error( other_came_from )
+				//console.error( other_came_from )
+
+				const chart_path = () => {
+					return _.map(_.range(8), (val_y,idx)=>{
+						return _.map(_.range(10), (val_x, idx)=> {
+							console.log(tuple_to_addr(val_x,val_y),);
+							return _.includes(keys(came_from), tuple_to_addr({x: val_x, y: val_y})) ? "•" : " "; 
+						}).join(',');
+					}).join('\n');
+				}
+				debugger;
 
 				const reconstruct_path = (came_from, start_node, goal_node) => {
 				debugger;
 					var current_node = goal_node;
 					var path = [];
-// 					while( current_node != start_node ){
-// 						path.push(current_node);
-// 						current_node = came_from[current_node];
-// 					}
+					while( current_node != start_node ){
+						path.push(current_node);
+						current_node = came_from[current_node];
+					}
 					return path;
 				}
 
-				console.warn( reconstruct_path(came_from, tuple_to_addr(_start_coords), tuple_to_addr(_end_coords) ) )
+//				console.warn( reconstruct_path(came_from, tuple_to_addr(_start_coords), tuple_to_addr(_end_coords) ) )
 //				console.warn( came_from, costs_so_far );
 				
 			}
