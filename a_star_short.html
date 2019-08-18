@@ -229,6 +229,7 @@
 				var costs_so_far = {};  //a map of node addresses (keys) to move cost (values)
 				var came_from = {}; //a map of node addresses (keys) to node addresses (values) 
 				other_came_from = [];
+				visited_nodes = []; //an array of node addresses (key
 				
 				const remove_item_from_obj = (obj, victim) => _.pick(obj, _.filter(_.keys(obj), (val)=> val != victim ))
 				
@@ -249,8 +250,8 @@
 				while( !frontier.isEmpty() ){
 				
 					//var current_node = get_lowest_value(frontier)
-					var current_node = frontier.dequeue();
-					console.log(frontier, current_node);
+					const current_node = frontier.dequeue();
+					//console.log(frontier, current_node);
 					//frontier = remove_item_from_obj(frontier, current_node);
 				
 					if(current_node.element == tuple_to_addr(_end_coords)){
@@ -261,11 +262,16 @@
 						var new_cost = costs_so_far[ current_node.element ] + 1; //this is where we'd add a weighted graph lookup for movecost.
 						
 						if(
-							!(_.includes(costs_so_far, next_node)) || new_cost < costs_so_far[next_node]
+							!_.includes(visited_nodes, next_node)
+							||
+							!(_.includes(costs_so_far, next_node)
+							||
+							new_cost < costs_so_far[next_node])
 						){
 							costs_so_far[next_node] = new_cost;
 						
 							//frontier[next_node] = new_cost + compute_node_heuristic( addr_to_tuple(next_node), _end_coords );
+							visited_nodes.push( next_node );
 							frontier.enqueue(next_node, new_cost + compute_node_heuristic( addr_to_tuple(next_node), _end_coords ));
 							came_from[next_node] = current_node.element;
 							other_came_from.push( {cur: current_node.element, nex: next_node } );
@@ -415,9 +421,9 @@
 				//console.log( node_has_any_open_leaves(node_graph1, "3,4", successful_path1) );
 
 				
-				render_map( grid1, data1.successful_path, data1.discarded_nodes, '#canvas1', '#grid1info');
-				render_map( grid2, data2.successful_path, data2.discarded_nodes, '#canvas2', '#grid2info');
-				render_map( grid3, data3.successful_path, data3.discarded_nodes, '#canvas3', '#grid3info');
+// 				render_map( grid1, data1.successful_path, data1.discarded_nodes, '#canvas1', '#grid1info');
+// 				render_map( grid2, data2.successful_path, data2.discarded_nodes, '#canvas2', '#grid2info');
+// 				render_map( grid3, data3.successful_path, data3.discarded_nodes, '#canvas3', '#grid3info');
 
 
 			});
