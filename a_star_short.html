@@ -294,11 +294,17 @@
 						path.push(current_node);
 						current_node = came_from[current_node];
 					}
+					path.push(start_node);
 					return path;
 				}
 
 				console.warn( reconstruct_path(came_from, tuple_to_addr(_start_coords), tuple_to_addr(_end_coords) ) )
 //				console.warn( came_from, costs_so_far );
+
+				return {
+					successful_path: reconstruct_path(came_from, tuple_to_addr(_start_coords), tuple_to_addr(_end_coords) ),
+					discarded_nodes: []
+				};
 				
 			}
 
@@ -405,13 +411,19 @@
 // 				var data1 = breadth_first_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
 // 				var data2 = breadth_first_search(node_graph2, {x: 1, y: 1}, {x: 8, y: 4});
 // 				var data3 = breadth_first_search(node_graph3, {x: 1, y: 1}, {x: 8, y: 4});
-				var data4 = a_star_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
+				var data1 = a_star_search(node_graph1, {x: 1, y: 1}, {x: 8, y: 4});
+				var data2 = a_star_search(node_graph2, {x: 1, y: 1}, {x: 8, y: 4});
+				var data3 = a_star_search(node_graph3, {x: 1, y: 1}, {x: 8, y: 4});
 
 				//console.log( data1.successful_path );
 				//console.log( data2.successful_path );
 				//console.log( data3.successful_path );
 
 				//console.log( node_has_any_open_leaves(node_graph1, "3,4", successful_path1) );
+
+ 				render_map( grid1, data1.successful_path, data1.discarded_nodes, '#canvas1', '#grid1info');
+ 				render_map( grid2, data2.successful_path, data2.discarded_nodes, '#canvas2', '#grid2info');
+ 				render_map( grid3, data3.successful_path, data3.discarded_nodes, '#canvas3', '#grid3info');
 
 				
 // 				render_map( grid1, data1.successful_path, data1.discarded_nodes, '#canvas1', '#grid1info');
