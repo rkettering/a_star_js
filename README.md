@@ -2,6 +2,8 @@ A collection of various classical pathfinding algorithms written in JS.  Include
 
 These are just plain vanilla-js files, with es6-leanings (they use stuff that only works chromium/firefox at the time of writing, though that will likely be universally supported in the near future).  They import lodash, jquery, and also do some canvas drawing to create a nice visual graph of the mazes being solved and of the nodes touched by the algorithm.
 
+Merely downloading the files, and opening them in a browser should suffice to make them work; they need no server, build process, or anything.
+
 ## Warning:
 Most of the files are busted "partial attempts" to get the algorithms working.
 
