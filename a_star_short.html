@@ -303,7 +303,7 @@
 
 				return {
 					successful_path: reconstruct_path(came_from, tuple_to_addr(_start_coords), tuple_to_addr(_end_coords) ),
-					discarded_nodes: []
+					discarded_nodes: _.keys(came_from)
 				};
 				
 			}
